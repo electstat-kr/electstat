@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2026 인천 연수구 선거 데이터</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #ffffff;
+    --card-bg: #f7f8fa;
+    --border: #e2e5e9;
+    --text: #1a1d23;
+    --muted: #6b7280;
+    --accent: #4a5568;
+    --line: #a0aec0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans KR', -apple-system, sans-serif;
+    line-height: 1.6;
+  }
+  .wrap {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 24px 20px 60px;
+  }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .titles h1 {
+    font-size: 1.5rem;
+    margin: 0 0 6px;
+  }
+  .titles p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+  .lang-toggle {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .lang-toggle button {
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .lang-toggle button.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+  section {
+    margin-bottom: 32px;
+  }
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .source-line {
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin: 0 0 16px;
+  }
+  .chart-box {
+    position: relative;
+    height: 420px;
+  }
+  .legend-row {
+    display: flex;
+    gap: 24px;
+    margin-top: 12px;
+    font-size: 0.85rem;
+    color: var(--muted);
+    flex-wrap: wrap;
+  }
+  .legend-row span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .swatch-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: inline-block;
+  }
+  .swatch-line {
+    width: 18px;
+    height: 0;
+    border-top: 2px dashed var(--line);
+    display: inline-block;
+  }
+  .click-hint {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-top: 10px;
+  }
+  .detail-card h3 {
+    margin: 0 0 14px;
+    font-size: 1.1rem;
+  }
+  .detail-card .hint {
+    color: var(--muted);
+    margin: 0;
+  }
+  .detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .detail-col h4 {
+    margin: 0 0 8px;
+    font-size: 0.9rem;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .detail-col p {
+    margin: 4px 0;
+    font-size: 0.95rem;
+  }
+  .methodology {
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+  .methodology a {
+    color: var(--accent);
+  }
+  footer {
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  @media (max-width: 600px) {
+    header { flex-direction: column; }
+    .detail-grid { grid-template-columns: 1fr; }
+    .chart-box { height: 340px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="titles">
+      <h1 id="pageTitle"></h1>
+      <p id="pageSubtitle"></p>
+    </div>
+    <div class="lang-toggle">
+      <button id="btnKo" onclick="setLang('ko')">KO</button>
+      <button id="btnEn" onclick="setLang('en')">EN</button>
+    </div>
+  </header>
+
+  <section>
+    <div class="card">
+      <p class="source-line" id="sourceLine"></p>
+      <div class="chart-box">
+        <canvas id="scatterChart"></canvas>
+      </div>
+      <div class="legend-row">
+        <span><i class="swatch-dot"></i><span id="legendDistrict"></span></span>
+        <span><i class="swatch-line"></i><span id="legendAvg"></span></span>
+      </div>
+      <p class="click-hint" id="clickHint"></p>
+    </div>
+  </section>
+
+  <section>
+    <div class="card detail-card" id="detailCard"></div>
+  </section>
+
+  <section>
+    <div class="card">
+      <p class="methodology" id="methodology"></p>
+      <p class="methodology"><a id="sourceLink" href="https://info.nec.go.kr" target="_blank" rel="noopener noreferrer">info.nec.go.kr</a></p>
+    </div>
+  </section>
+
+  <footer>
+    <span id="footerSource"></span>
+  </footer>
+
+</div>
+
+<script>
+const districts = [
+  { id:'okryeon1', ko:'옥련1동', en:'Ongnyeon 1-dong',  earlyPark:66.5, earlyYoo:33.5, dayPark:38.7, dayYoo:61.3 },
+  { id:'okryeon2', ko:'옥련2동', en:'Ongnyeon 2-dong',  earlyPark:67.2, earlyYoo:32.8, dayPark:40.4, dayYoo:59.6 },
+  { id:'seonhak',  ko:'선학동',  en:'Seonhak-dong',     earlyPark:68.2, earlyYoo:31.8, dayPark:41.3, dayYoo:58.7 },
+  { id:'yeonsu1',  ko:'연수1동', en:'Yeonsu 1-dong',    earlyPark:70.2, earlyYoo:29.8, dayPark:40.2, dayYoo:59.8 },
+  { id:'yeonsu2',  ko:'연수2동', en:'Yeonsu 2-dong',    earlyPark:68.9, earlyYoo:31.1, dayPark:40.9, dayYoo:59.1 },
+  { id:'yeonsu3',  ko:'연수3동', en:'Yeonsu 3-dong',    earlyPark:68.5, earlyYoo:31.5, dayPark:42.5, dayYoo:57.5 },
+  { id:'cheonghak',ko:'청학동',  en:'Cheonghak-dong',   earlyPark:68.3, earlyYoo:31.7, dayPark:41.5, dayYoo:58.5 },
+  { id:'dongchun1',ko:'동춘1동', en:'Dongchun 1-dong',  earlyPark:70.8, earlyYoo:29.2, dayPark:45.0, dayYoo:55.0 },
+  { id:'dongchun2',ko:'동춘2동', en:'Dongchun 2-dong',  earlyPark:69.5, earlyYoo:30.5, dayPark:43.3, dayYoo:56.7 },
+  { id:'dongchun3',ko:'동춘3동', en:'Dongchun 3-dong',  earlyPark:70.7, earlyYoo:29.3, dayPark:42.5, dayYoo:57.5 },
+  { id:'songdo1',  ko:'송도1동', en:'Songdo 1-dong',    earlyPark:67.8, earlyYoo:32.2, dayPark:40.1, dayYoo:59.9 },
+  { id:'songdo2',  ko:'송도2동', en:'Songdo 2-dong',    earlyPark:67.8, earlyYoo:32.2, dayPark:39.4, dayYoo:60.6 },
+  { id:'songdo3',  ko:'송도3동', en:'Songdo 3-dong',    earlyPark:68.8, earlyYoo:31.2, dayPark:44.1, dayYoo:55.9 },
+  { id:'songdo4',  ko:'송도4동', en:'Songdo 4-dong',    earlyPark:70.9, earlyYoo:29.1, dayPark:45.3, dayYoo:54.7 },
+  { id:'songdo5',  ko:'송도5동', en:'Songdo 5-dong',    earlyPark:70.1, earlyYoo:29.9, dayPark:47.4, dayYoo:52.6 }
+];
+
+const i18n = {
+  ko: {
+    title: "2026 인천 연수구 선거 데이터",
+    subtitle: "관내 사전투표 vs 당일투표 득표율 비교",
+    source: "출처: 중앙선거관리위원회",
+    x_axis: "사전투표 박찬대 득표율",
+    y_axis: "당일투표 박찬대 득표율",
+    avg_line: "구 평균",
+    legend_district: "동",
+    click_hint: "동을 클릭하면 상세 수치가 표시됩니다",
+    early: "사전투표",
+    election_day: "당일투표",
+    park: "박찬대",
+    yoo: "유정복",
+    voters: "관내사전투표 참여자",
+    methodology: "이 데이터는 선관위 공식 집계를 바탕으로 하며 어떠한 해석도 포함하지 않습니다",
+    footer: "데이터 출처: 중앙선거관리위원회 (info.nec.go.kr)"
+  },
+  en: {
+    title: "2026 Incheon Yeonsu-gu Election Data",
+    subtitle: "Early Voting vs Election Day Vote Share Comparison",
+    source: "Source: National Election Commission of Korea",
+    x_axis: "Early Vote Share (Park Chan-dae)",
+    y_axis: "Election Day Vote Share (Park Chan-dae)",
+    avg_line: "District Average",
+    legend_district: "District",
+    click_hint: "Click a district to see detailed figures",
+    early: "Early Voting",
+    election_day: "Election Day",
+    park: "Park Chan-dae (DP)",
+    yoo: "Yoo Jeong-bok (PPP)",
+    voters: "Early Voters",
+    methodology: "This data is based on official NEC figures and includes no interpretation",
+    footer: "Data source: National Election Commission of Korea (info.nec.go.kr)"
+  }
+};
+
+let lang = new URLSearchParams(location.search).get('lang');
+if (lang !== 'ko' && lang !== 'en') lang = 'ko';
+
+let chart = null;
+let selectedId = null;
+
+function t(key) { return i18n[lang][key]; }
+
+function setLang(newLang) {
+  lang = newLang;
+  const url = new URL(location.href);
+  url.searchParams.set('lang', lang);
+  history.replaceState(null, '', url);
+  document.documentElement.lang = lang;
+  render();
+}
+
+function render() {
+  document.getElementById('btnKo').classList.toggle('active', lang === 'ko');
+  document.getElementById('btnEn').classList.toggle('active', lang === 'en');
+
+  document.getElementById('pageTitle').textContent = t('title');
+  document.getElementById('pageSubtitle').textContent = t('subtitle');
+  document.getElementById('sourceLine').textContent = t('source');
+  document.getElementById('legendDistrict').textContent = t('legend_district');
+  document.getElementById('legendAvg').textContent = t('avg_line');
+  document.getElementById('clickHint').textContent = t('click_hint');
+  document.getElementById('methodology').textContent = t('methodology');
+  document.getElementById('footerSource').textContent = t('footer');
+  document.title = t('title');
+
+  buildChart();
+  renderDetail();
+}
+
+function buildChart() {
+  const ctx = document.getElementById('scatterChart');
+  const points = districts.map(d => ({ x: d.earlyPark, y: d.dayPark }));
+
+  const xs = points.map(p => p.x);
+  const ys = points.map(p => p.y);
+  const avgX = xs.reduce((a, b) => a + b, 0) / xs.length;
+  const avgY = ys.reduce((a, b) => a + b, 0) / ys.length;
+  const minX = Math.floor(Math.min(...xs)) - 1;
+  const maxX = Math.ceil(Math.max(...xs)) + 1;
+  const minY = Math.floor(Math.min(...ys)) - 1;
+  const maxY = Math.ceil(Math.max(...ys)) + 1;
+
+  const datasets = [
+    {
+      label: 'districts',
+      data: points,
+      backgroundColor: '#4a5568',
+      pointRadius: 6,
+      pointHoverRadius: 8,
+      order: 1
+    },
+    {
+      type: 'line',
+      label: 'avgY',
+      data: [{ x: minX, y: avgY }, { x: maxX, y: avgY }],
+      borderColor: '#a0aec0',
+      borderDash: [6, 4],
+      borderWidth: 1,
+      pointRadius: 0,
+      fill: false,
+      order: 2
+    },
+    {
+      type: 'line',
+      label: 'avgX',
+      data: [{ x: avgX, y: minY }, { x: avgX, y: maxY }],
+      borderColor: '#a0aec0',
+      borderDash: [6, 4],
+      borderWidth: 1,
+      pointRadius: 0,
+      fill: false,
+      order: 2
+    }
+  ];
+
+  if (chart) chart.destroy();
+  chart = new Chart(ctx, {
+    type: 'scatter',
+    data: { datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: {
+          title: { display: true, text: t('x_axis') },
+          min: minX,
+          max: maxX,
+          ticks: { callback: (v) => v + '%' }
+        },
+        y: {
+          title: { display: true, text: t('y_axis') },
+          min: minY,
+          max: maxY,
+          ticks: { callback: (v) => v + '%' }
+        }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          filter: (item) => item.dataset.label === 'districts',
+          callbacks: {
+            label: (item) => {
+              const d = districts[item.dataIndex];
+              const name = lang === 'ko' ? d.ko : d.en;
+              return name + ': ' + item.parsed.x + '% / ' + item.parsed.y + '%';
+            }
+          }
+        }
+      },
+      onClick: (evt) => {
+        const els = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
+        if (els.length && chart.data.datasets[els[0].datasetIndex].label === 'districts') {
+          selectedId = districts[els[0].index].id;
+          renderDetail();
+        }
+      }
+    }
+  });
+}
+
+function renderDetail() {
+  const card = document.getElementById('detailCard');
+  if (!selectedId) {
+    card.innerHTML = '<p class="hint">' + t('click_hint') + '</p>';
+    return;
+  }
+  const d = districts.find(x => x.id === selectedId);
+  const name = lang === 'ko' ? d.ko : d.en;
+  card.innerHTML =
+    '<h3>' + name + '</h3>' +
+    '<div class="detail-grid">' +
+      '<div class="detail-col">' +
+        '<h4>' + t('early') + '</h4>' +
+        '<p>' + t('park') + ': <strong>' + d.earlyPark + '%</strong></p>' +
+        '<p>' + t('yoo') + ': <strong>' + d.earlyYoo + '%</strong></p>' +
+      '</div>' +
+      '<div class="detail-col">' +
+        '<h4>' + t('election_day') + '</h4>' +
+        '<p>' + t('park') + ': <strong>' + d.dayPark + '%</strong></p>' +
+        '<p>' + t('yoo') + ': <strong>' + d.dayYoo + '%</strong></p>' +
+      '</div>' +
+    '</div>';
+}
+
+document.documentElement.lang = lang;
+render();
+</script>
+</body>
+</html>
